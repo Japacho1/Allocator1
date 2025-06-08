@@ -1,0 +1,56 @@
+.school-courses-container {
+    padding: 20px;
+    max-width: 900px;
+    margin: auto;
+    font-family: Arial, sans-serif;
+  }
+  
+  .schools-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  
+  .schools-table th, .schools-table td {
+    border: 1px solid #ddd;
+    padding: 12px 15px;
+    vertical-align: top;
+  }
+  
+  .schools-table th {
+    background-color: #040a1a;
+    color: white;
+    text-align: left;
+  }
+  
+  .schools-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+  }
+  
+  .schools-table ul {
+    margin: 0;
+    padding-left: 20px;
+  }
+  
+  .schools-table li {
+    list-style-type: disc;
+  }
+  
+  .error {
+    color: red;
+    font-weight: bold;
+  }
+  
+  .delete-button {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+  
+  .delete-button:hover {
+    background-color: #c0392b;
+  }
+  

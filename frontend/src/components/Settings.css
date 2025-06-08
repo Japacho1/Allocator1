@@ -1,0 +1,75 @@
+.settings-container {
+    max-width: 600px;
+    margin: 3rem auto;
+    padding: 2rem;
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 0 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .settings-title {
+    text-align: center;
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .settings-section {
+    margin-bottom: 2rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid #eee;
+  }
+  
+  .settings-section h3 {
+    margin-bottom: 1rem;
+  }
+  
+  .settings-section input[type="text"],
+  .settings-section input[type="email"],
+  .settings-section input[type="password"] {
+    display: block;
+    width: 100%;
+    padding: 0.6rem;
+    margin-bottom: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+  }
+  
+  .settings-section button {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    background-color: #0080ff;
+    color: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  
+  .settings-section button:hover {
+    background-color: #006ad9;
+  }
+  
+  .settings-section label {
+    display: block;
+    margin: 0.8rem 0;
+    font-weight: 500;
+  }
+  
+  .danger-zone {
+    background-color: #fff5f5;
+    padding: 1rem;
+    border: 1px solid #fdd;
+    border-radius: 8px;
+  }
+  
+  .danger-button {
+    background-color: #ff4d4f;
+    color: #fff;
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  
+  .danger-button:hover {
+    background-color: #e60000;
+  }
+  

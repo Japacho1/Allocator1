@@ -1,0 +1,204 @@
+/* Container */
+.transfers-container {
+  max-width: 900px;
+  margin: 20px auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  color: #333;
+}
+
+/* Headings */
+.transfers-container h1 {
+  font-size: 2rem;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* Buttons */
+button {
+  padding: 10px 20px;
+  margin: 0 5px 10px 0;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+button:hover {
+  opacity: 0.85;
+}
+
+.btn-auto-transfer {
+  background-color: #0069d9;
+  color: white;
+}
+
+.btn-download-excel {
+  background-color: #28a745;
+  color: white;
+}
+
+.btn-show-manual {
+  background-color: #007bff;
+  color: white;
+}
+
+.btn-reverse {
+  background-color: orange;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 3px;
+}
+
+/* Table styles */
+.transfers-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 0.95rem;
+}
+
+.transfers-table th, .transfers-table td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  vertical-align: middle;
+  text-align: left;
+}
+
+.transfers-table th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+}
+
+.transfers-table tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+/* Message */
+.message {
+  margin-top: 15px;
+  font-weight: 600;
+}
+
+.message.success {
+  color: green;
+}
+
+.message.error {
+  color: red;
+}
+
+/* Modal overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+/* Modal content */
+.modal-content {
+  background-color: white;
+  padding: 30px;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  position: relative;
+  font-size: 0.9rem;
+}
+
+/* Close button */
+.modal-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #888;
+}
+
+.modal-close-btn:hover {
+  color: #555;
+}
+
+/* Form layout */
+.manual-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.manual-form label {
+  flex: 1 1 45%;
+  display: flex;
+  flex-direction: column;
+  font-weight: 600;
+}
+
+.manual-form label.full-width {
+  flex: 1 1 100%;
+}
+
+/* Input fields */
+.manual-form input[type="text"],
+.manual-form input[type="number"] {
+  padding: 8px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.manual-form input[type="text"]:focus,
+.manual-form input[type="number"]:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
+/* Search dropdown list */
+.search-dropdown {
+  position: absolute;
+  background: white;
+  border: 1px solid #ccc;
+  max-height: 150px;
+  overflow-y: auto;
+  width: 100%;
+  z-index: 20;
+  box-sizing: border-box;
+}
+
+.search-dropdown div {
+  padding: 8px;
+  cursor: pointer;
+}
+
+.search-dropdown div:hover {
+  background-color: #f0f0f0;
+}
+
+/* Submit button */
+.manual-form button[type="submit"] {
+  background-color: #28a745;
+  color: white;
+  padding: 10px 15px;
+  border-radius: 5px;
+  font-weight: bold;
+  margin-top: 10px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.manual-form button[type="submit"]:hover {
+  background-color: #218838;
+}
