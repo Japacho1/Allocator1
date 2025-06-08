@@ -3,9 +3,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import ExamData, School, Course, Constituency,Transfer
 from .serializers import ExamDataSerializer, SchoolSerializer, CourseSerializer, ConstituencySerializer, TransferSerializer
-from .utils import calculate_allocation, auto_transfer_students, generate_daily_allocation_dynamic
+from .utils import calculate_allocation, auto_transfer_students, generate_daily_allocation_dynamic, reverse_transfer
 from .serializers import UserSignupSerializer
-from .serializers import AllocationSerializer
+from django.db.models import Sum
+from django.http import JsonResponse
+
 
 @api_view(['POST'])
 def user_signup_view(request):
@@ -149,12 +151,72 @@ def run_auto_transfer_view(request):
         "total_exam_entries_checked": result["total_records_checked"],
         "transfers_done": result["transfers_done"]
     }, status=status.HTTP_200_OK)
-
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 def transfers_view(request):
-    transfers = Transfer.objects.all().order_by('-timestamp')
-    serializer = TransferSerializer(transfers, many=True)
-    return Response(serializer.data)
+    if request.method == 'GET':
+        transfers = Transfer.objects.all()
+        serializer = TransferSerializer(transfers, many=True)
+        return Response(serializer.data)
+
+    elif request.method == 'POST':
+        data = request.data
+        try:
+            from_school_id = data.get('from_school_id')
+            to_school_id = data.get('to_school_id')
+            course_id = data.get('course_id')
+            grade1 = int(data.get('grade1', 0))
+            grade2 = int(data.get('grade2', 0))
+            grade3 = int(data.get('grade3', 0))
+            note = data.get('note', '')
+
+            # Prevent transferring to self
+            if from_school_id == to_school_id:
+                return Response(
+                    {'error': 'A school cannot transfer students to itself.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # Fetch or raise error if exam data doesn't exist
+            try:
+                from_exam_data = ExamData.objects.get(school_id=from_school_id, course_id=course_id)
+                to_exam_data, _ = ExamData.objects.get_or_create(school_id=to_school_id, course_id=course_id)
+            except ExamData.DoesNotExist:
+                return Response({'error': 'Exam data not found for one of the schools.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Check if from_school has enough students to transfer
+            if (from_exam_data.grade1_students < grade1 or
+                from_exam_data.grade2_students < grade2 or
+                from_exam_data.grade3_students < grade3):
+                return Response({'error': 'Not enough students to transfer from the source school.'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Update exam data: subtract from source
+            from_exam_data.grade1_students -= grade1
+            from_exam_data.grade2_students -= grade2
+            from_exam_data.grade3_students -= grade3
+            from_exam_data.save()
+
+            # Update exam data: add to destination
+            to_exam_data.grade1_students += grade1
+            to_exam_data.grade2_students += grade2
+            to_exam_data.grade3_students += grade3
+            to_exam_data.save()
+
+            # Save transfer record
+            transfer = Transfer.objects.create(
+                from_school_id=from_school_id,
+                to_school_id=to_school_id,
+                course_id=course_id,
+                grade1_students_transferred=grade1,
+                grade2_students_transferred=grade2,
+                grade3_students_transferred=grade3,
+                note=note
+            )
+            serializer = TransferSerializer(transfer)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
 
 @api_view(['DELETE'])
 def delete_school_view(request, school_id):
@@ -201,19 +263,114 @@ def daily_allocation_view(request):
             {"error": f"Invalid parameters: {str(e)}"},
             status=status.HTTP_400_BAD_REQUEST
         )
+    
+@api_view(['GET'])
+def dashboard_stats(request):
+    total_schools = School.objects.count()
+
+    courses_data = []
+
+    courses = Course.objects.all()
+
+    for course in courses:
+        # Count schools offering this course - assuming 'schools' is a related_name for ManyToMany or ForeignKey in Course or School model
+        school_count = course.schools.count() if hasattr(course, 'schools') else 0
+
+        # Get all exam data for this course
+        examdata = ExamData.objects.filter(course=course)
+
+        # Sum students by grade
+        grade1 = examdata.aggregate(total=Sum('grade1_students'))['total'] or 0
+        grade2 = examdata.aggregate(total=Sum('grade2_students'))['total'] or 0
+        grade3 = examdata.aggregate(total=Sum('grade3_students'))['total'] or 0
+
+        total_students = grade1 + grade2 + grade3
+
+        courses_data.append({
+            "name": course.name,
+            "schoolCount": school_count,
+            "totalStudents": total_students,
+            "grade1": grade1,
+            "grade2": grade2,
+            "grade3": grade3,
+        })
+
+    return Response({
+        "totalSchools": total_schools,
+        "courses": courses_data
+    })
+
 @api_view(['POST'])
-def bulk_allocation_upload(request):
-    data = request.data
-    if not isinstance(data, list):
-        return Response({"error": "Expected a list of allocations."}, status=400)
+def bulk_allocation_upload_view(request):
+    """
+    Accepts a list of exam data entries and performs allocation calculation for each.
+    """
+    entries = request.data  # expecting a list of dicts
 
-    allocations = []
-    for item in data:
-        serializer = AllocationSerializer(data=item)
-        if serializer.is_valid():
-            allocations.append(Allocation(**serializer.validated_data))
-        else:
-            return Response(serializer.errors, status=400)
+    if not isinstance(entries, list):
+        return Response({"error": "Data must be a list of exam entries."}, status=status.HTTP_400_BAD_REQUEST)
 
-    Allocation.objects.bulk_create(allocations)
-    return Response({"message": "Bulk upload successful."}, status=201)
+    created_records = []
+    errors = []
+
+    for idx, entry in enumerate(entries):
+        try:
+            # Handle cases where frontend might send school_id/course_id as a list
+            if isinstance(entry.get('school_id'), list):
+                entry['school_id'] = entry['school_id'][0]
+
+            if isinstance(entry.get('course_id'), list):
+                entry['course_id'] = entry['course_id'][0]
+
+            # Prepare and validate the serializer
+            serializer = ExamDataSerializer(data=entry)
+
+            if serializer.is_valid():
+                # Run allocation calculation
+                calculated = calculate_allocation(
+                    int(entry.get("grade1_students", 0)),
+                    int(entry.get("grade2_students", 0)),
+                    int(entry.get("grade3_students", 0)),
+                )
+
+                # Save with calculated fields
+                exam_data = serializer.save(
+                    number_of_assessors=calculated["estimated_assessors"],
+                    grade1_days=calculated["grade1_days"],
+                    grade2_days=calculated["grade2_days"],
+                    grade3_days=calculated["grade3_days"],
+                    total_days_needed=calculated["total_days_needed"],
+                    total_days_available=calculated["total_days_available"],
+                    status=calculated["status"],
+                    grade1_students_day1=calculated["grade1_students_day1"],
+                    grade2_students_day1=calculated["grade2_students_day1"],
+                    grade3_students_day1=calculated["grade3_students_day1"],
+                    note=calculated.get("note", "")
+                )
+
+                created_records.append(ExamDataSerializer(exam_data).data)
+
+            else:
+                errors.append({
+                    "index": idx,
+                    "errors": serializer.errors
+                })
+
+        except Exception as e:
+            errors.append({
+                "index": idx,
+                "error": str(e)
+            })
+
+    return Response({
+        "message": f"{len(created_records)} records created successfully.",
+        "created": created_records,
+        "errors": errors
+    }, status=status.HTTP_201_CREATED if created_records else status.HTTP_400_BAD_REQUEST)
+
+# views.py
+
+@api_view(['POST'])
+def reverse_transfer_view(request, transfer_id):
+    result = reverse_transfer(transfer_id)
+    return JsonResponse(result)

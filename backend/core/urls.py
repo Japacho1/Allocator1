@@ -9,9 +9,12 @@ from .views import (
     transfers_view,
     delete_school_view,
     daily_allocation_view,
-    bulk_allocation_upload # Import your delete view here
+    bulk_allocation_upload_view,
+    reverse_transfer_view,
+   # Import your delete view here
 )
 from .views import user_signup_view
+from .views import dashboard_stats
 
 
 urlpatterns = [
@@ -24,7 +27,10 @@ urlpatterns = [
     path('transfers/', transfers_view, name='transfers'),  # existing url
     path('schools/<int:school_id>/delete/', delete_school_view, name='delete-school'),  
     path('daily-allocation/', daily_allocation_view),
-    path('allocation/bulk/', bulk_allocation_upload),
     path('signup/', user_signup_view, name='user-signup'),
+    path('dashboard-stats/', dashboard_stats, name='dashboard-stats'),
+    path('bulk-upload/', bulk_allocation_upload_view, name='bulk_allocation_upload'),
+    path('reverse-transfer/<int:transfer_id>/', reverse_transfer_view),
+
    # new delete url
 ]

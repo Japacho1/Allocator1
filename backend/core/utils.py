@@ -274,3 +274,68 @@ def auto_transfer_students():
         "total_records_checked": total_exam_entries,
         "transfers_done": transfers_done
     }
+
+from django.db import transaction
+from django.utils import timezone
+from .models import ExamData, Transfer
+@transaction.atomic
+def reverse_transfer(transfer_id):
+    try:
+        transfer = Transfer.objects.select_related('from_school', 'to_school', 'course').get(id=transfer_id)
+
+        from_school = transfer.from_school
+        to_school = transfer.to_school
+        course = transfer.course
+
+        # Get or create exam data records
+        from_exam, _ = ExamData.objects.get_or_create(
+            school=from_school,
+            course=course,
+            defaults={
+                'grade1_students': 0,
+                'grade2_students': 0,
+                'grade3_students': 0,
+                'status': 'active'
+            }
+        )
+
+        to_exam = ExamData.objects.filter(school=to_school, course=course).first()
+
+        if not to_exam:
+            return {'error': 'No exam data found in target school for this course'}
+
+        # Move students back
+        from_exam.grade1_students += transfer.grade1_students_transferred
+        from_exam.grade2_students += transfer.grade2_students_transferred
+        from_exam.grade3_students += transfer.grade3_students_transferred
+        from_exam.status = 'active'
+        from_exam.save()
+
+        to_exam.grade1_students -= transfer.grade1_students_transferred
+        to_exam.grade2_students -= transfer.grade2_students_transferred
+        to_exam.grade3_students -= transfer.grade3_students_transferred
+
+        if to_exam.grade1_students + to_exam.grade2_students + to_exam.grade3_students == 0:
+            to_exam.status = 'inactive'
+
+        to_exam.save()
+
+        # Create reverse transfer record
+        Transfer.objects.create(
+            from_school=to_school,
+            to_school=from_school,
+            course=course,
+            grade1_students_transferred=transfer.grade1_students_transferred,
+            grade2_students_transferred=transfer.grade2_students_transferred,
+            grade3_students_transferred=transfer.grade3_students_transferred,
+            note="Reverse-transfer: students returned to original school",
+            timestamp=timezone.now()
+        )
+
+        # ✅ Delete the original transfer
+        transfer.delete()
+
+        return {'message': 'Reverse transfer successful'}
+
+    except Transfer.DoesNotExist:
+        return {'error': 'Transfer not found'}
